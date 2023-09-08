@@ -657,6 +657,7 @@ bool AutoConnectCredential::_add(const station_config_t* config) {
     // Insert
     AC_CREDTBODY_t  credtBody;
     credtBody.password = String(reinterpret_cast<const char*>(config->password));
+    credtBody.username = String(reinterpret_cast<const char*>(config->username));
     memcpy(credtBody.bssid, config->bssid, sizeof(AC_CREDTBODY_t::bssid));
     credtBody.dhcp = config->dhcp;
     for (uint8_t e = 0; e < sizeof(AC_CREDTBODY_t::ip) / sizeof(uint32_t); e++)
@@ -685,7 +686,7 @@ size_t AutoConnectCredential::_commit(void) {
   for (const auto& credt : _credit) {
     ssid = credt.first;
     credtBody = credt.second;
-    sz += ssid.length() + sizeof('\0') + credtBody.password.length() + sizeof('\0') + sizeof(AC_CREDTBODY_t::bssid) + sizeof(AC_CREDTBODY_t::dhcp);
+    sz += ssid.length() + sizeof('\0') + credtBody.password.length() + sizeof('\0') + credtBody.username.length() + sizeof('\0') + sizeof(AC_CREDTBODY_t::bssid) + sizeof(AC_CREDTBODY_t::dhcp);
     if (credtBody.dhcp == static_cast<uint8_t>(STA_STATIC)) {
       for (uint8_t e = 0; e < sizeof(AC_CREDTBODY_t::ip) / sizeof(uint32_t); e++)
         sz += sizeof(uint32_t);
@@ -714,6 +715,10 @@ size_t AutoConnectCredential::_commit(void) {
       dp += itemLen;
       itemLen = credtBody.password.length() + sizeof('\0');
       credtBody.password.toCharArray(reinterpret_cast<char*>(&credtPool[dp]), itemLen);
+      // BSSID
+      dp += itemLen;
+      itemLen = credtBody.username.length() + sizeof('\0');
+      credtBody.username.toCharArray(reinterpret_cast<char*>(&credtPool[dp]), itemLen);
       // BSSID
       dp += itemLen;
       memcpy(&credtPool[dp], credtBody.bssid, sizeof(station_config_t::bssid));
@@ -796,6 +801,9 @@ uint8_t AutoConnectCredential::_import(void) {
           credtBody.password = String(reinterpret_cast<const char*>(&credtPool[dp]));
           // BSSID
           dp += credtBody.password.length() + sizeof('\0');
+          credtBody.username = String(reinterpret_cast<const char*>(&credtPool[dp]));
+          // BSSID
+          dp += credtBody.username.length() + sizeof('\0');
           memcpy(credtBody.bssid, &credtPool[dp], sizeof(AC_CREDTBODY_t::bssid));
           dp += sizeof(AC_CREDTBODY_t::bssid);
           // DHCP/Static IP indicator
@@ -845,8 +853,12 @@ void AutoConnectCredential::_obtain(AC_CREDT_t::iterator const& it, station_conf
   memset(config, 0x00, sizeof(station_config_t));
   ssid.toCharArray(reinterpret_cast<char*>(config->ssid), sizeof(station_config_t::ssid));
   credtBody.password.toCharArray(reinterpret_cast<char*>(config->password), sizeof(station_config_t::password));
+  credtBody.username.toCharArray(reinterpret_cast<char*>(config->username), sizeof(station_config_t::username));
   memcpy(config->bssid, credtBody.bssid, sizeof(station_config_t::bssid));
   config->dhcp = credtBody.dhcp;
+  if (strlen((const char*) config->username) > 0) {
+    config->authMode = WIFI_AUTH_WPA2_ENTERPRISE;
+  }
   for (uint8_t e = 0; e < sizeof(AC_CREDTBODY_t::ip) / sizeof(uint32_t); e++)
     config->config.addr[e] = credtBody.dhcp == (uint8_t)STA_STATIC ? credtBody.ip[e] : 0U;
 }

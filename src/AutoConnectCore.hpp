@@ -101,7 +101,7 @@ class AutoConnectCore {
   String _getBootUri(void);
   bool  _getConfigSTA(station_config_t* config);
   bool  _loadAvailCredential(const char* ssid, const AC_PRINCIPLE_t principle = AC_PRINCIPLE_RECENT, const bool excludeCurrent = false);
-  bool  _loadCurrentCredential(char* ssid, char* password, const AC_PRINCIPLE_t principle, const bool excludeCurrent);
+  bool  _loadCurrentCredential(char *ssid, char* username, char *password, const AC_PRINCIPLE_t principle, const bool excludeCurrent);
   void  _restoreSTA(const station_config_t& staConfig);
   bool  _seekCredential(const AC_PRINCIPLE_t principle, const AC_SEEKMODE_t mode);
   void  _startWebServer(void);
@@ -129,6 +129,7 @@ class AutoConnectCore {
   wl_status_t _waitForConnect(unsigned long timeout);
   void  _waitForEndTransmission(void);
   void  _setReconnect(const AC_STARECONNECT_t order);
+  wl_status_t  _credentialConnect();
 
   /** Utilities */
   String              _attachMenuItem(const AC_MENUITEM_t item);
@@ -137,6 +138,7 @@ class AutoConnectCore {
   static String       _getSystemUptime(void);
   static String       _toMACAddressString(const uint8_t mac[]);
   static unsigned int _toWiFiQuality(int32_t rssi);
+  String              _toSecurityType(wifi_auth_mode_t authMode);
   ConnectExit_ft      _onConnectExit;
   DetectExit_ft       _onDetectExit;
   WhileCaptivePortalExit_ft _whileCaptivePortal;

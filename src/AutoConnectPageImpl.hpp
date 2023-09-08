@@ -17,6 +17,7 @@ extern "C" {
 }
 #elif defined(ARDUINO_ARCH_ESP32)
 #include <esp_spi_flash.h>
+#include <esp_wifi.h>
 #include <WiFi.h>
 #define ENC_TYPE_NONE WIFI_AUTH_OPEN
 #endif
@@ -756,6 +757,10 @@ const char  AutoConnectCore<T>::_PAGE_CONFIGNEW[] PROGMEM = {
               "<label for=\"ssid\">" AUTOCONNECT_PAGECONFIG_SSID "</label>"
               "<input id=\"ssid\" type=\"text\" name=\"" AUTOCONNECT_PARAMID_SSID "\" placeholder=\"" AUTOCONNECT_PAGECONFIG_SSID "\">"
             "</li>"
+            "<li id=\"usernamebox\" style=\"display: none\">"
+              "<label for=\"username\">" AUTOCONNECT_PAGECONFIG_USERNAME "</label>"
+              "<input id=\"username\" type=\"text\" name=\"" AUTOCONNECT_PAGECONFIG_USERNAME "\" placeholder=\"" AUTOCONNECT_PAGECONFIG_USERNAME "\">"
+            "</li>"
             "<li>"
               "<label for=\"passphrase\">" AUTOCONNECT_PAGECONFIG_PASSPHRASE "</label>"
               "<input id=\"passphrase\" type=\"password\" name=\"" AUTOCONNECT_PARAMID_PASS "\" placeholder=\"" AUTOCONNECT_PAGECONFIG_PASSPHRASE "\">"
@@ -765,6 +770,7 @@ const char  AutoConnectCore<T>::_PAGE_CONFIGNEW[] PROGMEM = {
               "<input id=\"dhcp\" type=\"checkbox\" name=\"dhcp\" value=\"en\" checked onclick=\"vsw(this.checked);\">"
             "</li>"
             "{{CONFIG_IP}}"
+            "<input type=\"hidden\" id=\"authtype\" value=\"\">"
             "<li><input type=\"submit\" name=\"apply\" value=\"" AUTOCONNECT_PAGECONFIG_APPLY "\"></li>"
           "</ul>"
         "</form>"
@@ -775,8 +781,8 @@ const char  AutoConnectCore<T>::_PAGE_CONFIGNEW[] PROGMEM = {
       "['" AUTOCONNECT_PARAMID_STAIP "','" AUTOCONNECT_PARAMID_GTWAY "','" AUTOCONNECT_PARAMID_NTMSK "','" AUTOCONNECT_PARAMID_DNS1 "','" AUTOCONNECT_PARAMID_DNS2 "'].forEach(function(n,o,t){"
         "io=document.getElementById(n),io.placeholder='0.0.0.0',io.pattern='^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'});"
       "vsw(true)};"
-    "function onFocus(e){"
-      "document.getElementById('ssid').value=e,document.getElementById('passphrase').focus()"
+    "function onFocus(el){"
+      "document.getElementById('ssid').value=el.getAttribute('value');if(el.getAttribute('authtype') == \"WPA2+EAP\"){document.getElementById('authtype').value=el.getAttribute('authenum');document.getElementById('usernamebox').style.display = 'table-row'; document.getElementById('username').focus();} else {document.getElementById('passphrase').focus();document.getElementById('usernamebox').style.display = 'none'}"
     "}"
     "function vsw(e){"
       "var t;t=e?'none':'table-row';for(const n of document.getElementsByClassName('exp'))n.style.display=t,n.getElementsByTagName('input')[0].disabled=e;e||document.getElementById('sip').focus()"
@@ -1293,10 +1299,8 @@ String AutoConnectCore<T>::_token_LIST_SSID(PageArgument& args) {
   AC_DBG_DUMB("\n");
   // Locate to the page and build SSD list content.
   static const char _ssidList[] PROGMEM =
-    "<input type=\"button\" onClick=\"onFocus(this.getAttribute('value'))\" value=\"%s\">"
-    "<label class=\"slist\">%d&#037;&ensp;Ch.%d</label>%s<br>";
-  static const char _ssidEnc[] PROGMEM =
-    "<span class=\"img-lock\"></span>";
+    "<input type=\"button\" onClick=\"onFocus(this)\" value=\"%s\" authtype=\"%s\" authenum=\"%d\">"
+    "<label class=\"slist\">%d&#037;&ensp;Ch.%d</label><label class=\"slist\">%s</label><br>";
   static const char _ssidPage[] PROGMEM =
     "<button type=\"submit\" name=\"page\" value=\"%d\" formaction=\"" AUTOCONNECT_URI_CONFIG "\">%s</button>&emsp;";
   _hiddenSSIDCount = 0;
@@ -1312,7 +1316,7 @@ String AutoConnectCore<T>::_token_LIST_SSID(PageArgument& args) {
       // per page in the available SSID list.
       if (validCount >= page * AUTOCONNECT_SSIDPAGEUNIT_LINES && validCount <= (page + 1) * AUTOCONNECT_SSIDPAGEUNIT_LINES - 1) {
         if (++dispCount <= AUTOCONNECT_SSIDPAGEUNIT_LINES) {
-          snprintf_P(slBuf, bufSize - (slBuf - ssidList), (PGM_P)_ssidList, ssid.c_str(), AutoConnectCore<T>::_toWiFiQuality((int32_t)WiFi.RSSI(i)), WiFi.channel(i), WiFi.encryptionType(i) != ENC_TYPE_NONE ? (PGM_P)_ssidEnc : "");
+          snprintf_P(slBuf, bufSize - (slBuf - ssidList), (PGM_P)_ssidList, ssid.c_str(), AutoConnectCore<T>::_toSecurityType(WiFi.encryptionType(i)).c_str(), WiFi.encryptionType(i),  AutoConnectCore<T>::_toWiFiQuality((int32_t)WiFi.RSSI(i)), WiFi.channel(i), AutoConnectCore<T>::_toSecurityType(WiFi.encryptionType(i)).c_str());
           slBuf += strlen(slBuf);
         }
       }

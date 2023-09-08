@@ -359,7 +359,7 @@
 
 // Page AutoConnectConfigAux text: User name
 #ifndef AUTOCONNECT_PAGECONFIG_USERNAME
-#define AUTOCONNECT_PAGECONFIG_USERNAME "User name"
+#define AUTOCONNECT_PAGECONFIG_USERNAME "Username"
 #endif // !AUTOCONNECT_PAGECONFIG_USERNAME
 
 // Page AutoConnectConfigAux text: Password
